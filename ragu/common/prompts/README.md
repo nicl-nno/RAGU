@@ -128,6 +128,7 @@ through `RaguGenerativeModule`.
 | `ragu_lm_relation_description` | `str` | `RaguLmArtifactExtractor` |
 | `query_decomposition` | `QueryPlan` | `QueryPlanEngine` |
 | `query_rewrite` | `RewriteQuery` | `QueryPlanEngine` |
+| `evidence_followup` | `Plan` (`queries: list[str]`, at most 3) | `EvidenceSearchEngine`; JSON `payload` contains question and initial evidence |
 
 ```python
 from ragu.common.prompts import DEFAULT_PROMPT_TEMPLATES

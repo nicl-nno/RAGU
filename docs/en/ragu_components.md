@@ -480,3 +480,12 @@ change to a single instance. Full field reference, custom-message examples, and
 few-shot formatting are in
 [`../../ragu/common/prompts/README.md`](../../ragu/common/prompts/README.md).
 ```
+# Evidence-grounded follow-up search
+
+`EvidenceSearchEngine` combines local graph evidence and direct paragraph
+search. It can ask the configured LLM for up to three follow-up queries grounded
+in the initial evidence, retrieve missing links, and fuse the rankings. Source
+paragraphs lead the final token-bounded context. This costs one planning call
+in addition to answer generation; disable planning with `followup_rounds=0`.
+See the [search-engine API](../../ragu/search_engine/README.md#evidencesearchengine)
+for the canonical example, parameters and diagnostics.

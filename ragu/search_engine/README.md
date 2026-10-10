@@ -16,6 +16,47 @@ The module separates retrieval strategy from indexing. All engines share `BaseEn
 
 ## Key Components
 
+### EvidenceSearchEngine
+
+Opt-in graph and paragraph retrieval with one evidence-grounded follow-up round.
+It unions local graph chunks with direct dense paragraph hits, ranks the union
+by cosine similarity, and asks the configured LLM for at most three searches
+based on the initial paragraphs. Reciprocal-rank fusion combines the original
+ranking and follow-up hits. Source paragraphs precede graph descriptions in the
+final context, which obeys `max_context_length` during answer generation.
+
+```python
+from ragu import EvidenceSearchEngine, EvidenceSearchParams
+
+engine = EvidenceSearchEngine(
+    llm=llm, knowledge_graph=knowledge_graph, embedder=embedder,
+    max_context_length=8000,
+)
+result = await engine.query("Your multi-hop question", EvidenceSearchParams())
+print(result.response)
+print(result.retrieval.metrics["followup_queries"])
+```
+
+The constructor accepts the same model, storage and tokenizer options as
+`LocalSearchEngine`. `EvidenceSearchParams` inherits `LocalParams`, with
+`neighbor_chunk_limit=10` for this engine only. Additional defaults are
+`dense_top_k=20`, `followup_rounds=1`, `followup_top_k=10`,
+`planner_seed_chunks=6`, `planner_context_tokens=3000`, and `rrf_k=60.0`.
+Set `followup_rounds=0` to disable planning. Other round counts are rejected.
+
+With planning enabled, even `search()` makes one LLM call per question;
+`query()` adds the final answer call. Planner evidence has its own token budget.
+`search()` returns untruncated `EvidenceSearchRetrieve` so callers can inspect
+all candidates; `query()` and `stream_query()` enforce the final context cap.
+The final answer uses the existing `local_search` prompt. Customize either
+`local_search` or `evidence_followup` with `engine.update_prompt(...)`; the
+planner schema must expose at most three string `queries`.
+
+Retrieval metrics include direct paragraph IDs (`dense_chunks`), normalized
+`followup_queries`, newly retrieved IDs (`followup_chunks`) and `planner_calls`,
+alongside local graph metrics. IDs are deduplicated without modifying the graph.
+The original `LocalSearchEngine` behavior is unchanged.
+
 ### BaseEngine
 
 Abstract base for query engines.

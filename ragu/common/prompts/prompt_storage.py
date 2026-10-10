@@ -14,6 +14,7 @@ from ragu.common.prompts.default_models import (
     ClusterSummarizationModel,
     QueryPlan,
     RewriteQuery,
+    _EVIDENCE_FOLLOWUP_SCHEMA,
 )
 from ragu.common.prompts.default_templates import (
     DEFAULT_ARTIFACTS_EXTRACTOR_SYSTEM,
@@ -36,6 +37,7 @@ from ragu.common.prompts.default_templates import (
     DEFAULT_QUERY_DECOMPOSITION_PROMPT,
     DEFAULT_QUERY_REWRITE_PROMPT,
     DEFAULT_RAGU_LM_SYSTEM_PROMPT,
+    DEFAULT_EVIDENCE_FOLLOWUP_PROMPT,
 )
 from ragu.common.prompts.few_shot import (
     FewShotFormatter,
@@ -284,5 +286,10 @@ DEFAULT_PROMPT_TEMPLATES: dict[str, RAGUInstruction] = {
         ),
         pydantic_model=RewriteQuery,
         description="Prompt for rewriting a subquery using answers from its dependencies.",
+    ),
+    "evidence_followup": RAGUInstruction(
+        messages=ChatMessages.from_messages([UserMessage(DEFAULT_EVIDENCE_FOLLOWUP_PROMPT)]),
+        pydantic_model=_EVIDENCE_FOLLOWUP_SCHEMA,
+        description="Plan up to three paragraph searches from question and initial evidence.",
     ),
 }

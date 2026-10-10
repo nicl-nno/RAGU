@@ -21,6 +21,9 @@ from ragu.search_engine import (
     NaiveSearchEngine,
     QueryPlanEngine,
     SearchEngineStreamEvent,
+    EvidenceSearchEngine,
+    EvidenceSearchParams,
+    EvidenceSearchRetrieve,
 )
 
 # Default extractors
@@ -44,6 +47,9 @@ __all__ = [
     "NaiveSearchEngine",
     "QueryPlanEngine",
     "SearchEngineStreamEvent",
+    "EvidenceSearchEngine",
+    "EvidenceSearchParams",
+    "EvidenceSearchRetrieve",
     "ArtifactsExtractorLLM",
     "TwoStageArtifactsExtractorLLM",
     "RaguLmArtifactExtractor",

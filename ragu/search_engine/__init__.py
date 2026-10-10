@@ -16,3 +16,8 @@ from ragu.search_engine.naive_search import (
     NaiveSearchRetrieve
 )
 from ragu.search_engine.query_plan import QueryPlanEngine
+from ragu.search_engine.evidence_search import (
+    EvidenceSearchEngine,
+    EvidenceSearchParams,
+    EvidenceSearchRetrieve,
+)

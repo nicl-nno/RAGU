@@ -42,7 +42,11 @@ from pydantic import (
     Field,
     field_validator,
     model_validator,
+    create_model,
 )
+
+
+_EVIDENCE_FOLLOWUP_SCHEMA = create_model('Plan', queries=(list[str], Field(max_length=3)))
 
 
 class EntityModel(BaseModel):
