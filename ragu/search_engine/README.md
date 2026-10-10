@@ -57,6 +57,24 @@ Retrieval metrics include direct paragraph IDs (`dense_chunks`), normalized
 alongside local graph metrics. IDs are deduplicated without modifying the graph.
 The original `LocalSearchEngine` behavior is unchanged.
 
+For a structured evidence-first answer, select the optional preset on this
+engine instance (the final generation still uses one LLM call):
+
+```python
+from ragu.common.prompts import DEFAULT_PROMPT_TEMPLATES
+
+engine.update_prompt("local_search", DEFAULT_PROMPT_TEMPLATES["evidence_answer"])
+result = await engine.query("Your multi-hop question")
+print(result.response.answer)
+print(result.response.evidence)  # Up to five grounded title/fact records.
+```
+
+This preset returns a Pydantic object in `response`. Normal short-answer prompts
+return a string. Structured output is supported by `query()` / `batch_query()`;
+use a plain-text answer prompt with `stream_query()`. Custom answer prompts may
+use `query`, `context`, `language` and a JSON `payload` containing question and
+bounded context. Generated facts are model outputs, not independent validation.
+
 ### BaseEngine
 
 Abstract base for query engines.

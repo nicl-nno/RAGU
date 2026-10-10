@@ -15,6 +15,7 @@ from ragu.common.prompts.default_models import (
     QueryPlan,
     RewriteQuery,
     _EVIDENCE_FOLLOWUP_SCHEMA,
+    _EVIDENCE_ANSWER_SCHEMA,
 )
 from ragu.common.prompts.default_templates import (
     DEFAULT_ARTIFACTS_EXTRACTOR_SYSTEM,
@@ -38,6 +39,7 @@ from ragu.common.prompts.default_templates import (
     DEFAULT_QUERY_REWRITE_PROMPT,
     DEFAULT_RAGU_LM_SYSTEM_PROMPT,
     DEFAULT_EVIDENCE_FOLLOWUP_PROMPT,
+    DEFAULT_EVIDENCE_ANSWER_PROMPT,
 )
 from ragu.common.prompts.few_shot import (
     FewShotFormatter,
@@ -291,5 +293,10 @@ DEFAULT_PROMPT_TEMPLATES: dict[str, RAGUInstruction] = {
         messages=ChatMessages.from_messages([UserMessage(DEFAULT_EVIDENCE_FOLLOWUP_PROMPT)]),
         pydantic_model=_EVIDENCE_FOLLOWUP_SCHEMA,
         description="Plan up to three paragraph searches from question and initial evidence.",
+    ),
+    "evidence_answer": RAGUInstruction(
+        messages=ChatMessages.from_messages([UserMessage(DEFAULT_EVIDENCE_ANSWER_PROMPT)]),
+        pydantic_model=_EVIDENCE_ANSWER_SCHEMA,
+        description="Extract up to five grounded facts before a short structured answer.",
     ),
 }

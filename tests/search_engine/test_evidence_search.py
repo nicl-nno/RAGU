@@ -90,3 +90,39 @@ async def test_empty_batch_performs_no_inference():
     assert await engine.batch_search([]) == []
     assert await engine.batch_query([]) == []
     engine.llm.chat_completion.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_structured_answer_payload_is_bounded_and_returned_without_extra_call():
+    import json
+    from ragu.common.prompts import DEFAULT_PROMPT_TEMPLATES
+
+    engine = make_engine({})
+    chunk = Chunk('Source title\n' + 'facts ' * 100, 0, 'doc')
+    retrieval = EvidenceSearchRetrieve('quoted "question"', LocalSearchResult(chunks=[chunk]))
+    engine.batch_search = AsyncMock(return_value=[retrieval])
+    instruction = DEFAULT_PROMPT_TEMPLATES['evidence_answer']
+    engine.update_prompt('local_search', instruction)
+    answer = instruction.pydantic_model.model_validate({'evidence': [{'title': 'Source title', 'fact': 'facts'}], 'answer': 'answer'})
+    engine.llm.batch_chat_completion = AsyncMock(return_value=[answer])
+    result = await engine.query('quoted "question"')
+    assert result.response.answer == 'answer'
+    messages = engine.llm.batch_chat_completion.call_args.args[0][0]
+    payload = json.loads(messages[0]['content'].split('\n', 1)[1])
+    assert payload['question'] == 'quoted "question"'
+    assert len(engine.truncation.encoder.encode(payload['context'])) <= 80
+    engine.llm.batch_chat_completion.assert_awaited_once()
+    engine.llm.chat_completion.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_structured_stream_rejected_before_retrieval():
+    from ragu.common.prompts import DEFAULT_PROMPT_TEMPLATES
+
+    engine = make_engine({})
+    engine.update_prompt('local_search', DEFAULT_PROMPT_TEMPLATES['evidence_answer'])
+    engine.batch_search = AsyncMock()
+    with pytest.raises(ValueError, match='plain-text'):
+        async for _ in engine.stream_query('q'):
+            pass
+    engine.batch_search.assert_not_awaited()

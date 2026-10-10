@@ -47,6 +47,10 @@ from pydantic import (
 
 
 _EVIDENCE_FOLLOWUP_SCHEMA = create_model('Plan', queries=(list[str], Field(max_length=3)))
+_EVIDENCE_FACT_SCHEMA = create_model('Fact', title=(str, ...), fact=(str, ...))
+_EVIDENCE_ANSWER_SCHEMA = create_model(
+    'EvidenceAnswer', evidence=(list[_EVIDENCE_FACT_SCHEMA], Field(max_length=5)), answer=(str, ...),
+)
 
 
 class EntityModel(BaseModel):

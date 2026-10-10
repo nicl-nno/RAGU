@@ -9,7 +9,7 @@ import numpy as np
 from typing_extensions import override
 
 from ragu.chunker.types import Chunk
-from ragu.common.prompts import DEFAULT_PROMPT_TEMPLATES
+from ragu.common.prompts import ChatMessages, DEFAULT_PROMPT_TEMPLATES
 from ragu.common.prompts.messages import render
 from ragu.graph.knowledge_graph import KnowledgeGraph
 from ragu.models.embedder import Embedder
@@ -159,6 +159,21 @@ class EvidenceSearchEngine(LocalSearchEngine):
         ]))
 
     @override
+    def _render_answer_messages(
+        self, query: str, context: LocalSearchRetrieve,
+        use_summary: bool, use_chunks: bool,
+    ) -> ChatMessages:
+        """Expose ordinary prompt fields plus a JSON payload for structured answers."""
+        if not use_summary:
+            context.result.summaries = []
+        if not use_chunks:
+            context.result.chunks = []
+        text = self.truncation(str(context))
+        instruction = self.get_prompt('local_search')
+        return render(instruction.messages, query=query, context=text, language=self.language,
+                      payload=json.dumps({'question': query, 'context': text}, ensure_ascii=False))[0]
+
+    @override
     async def batch_query(self, queries: list[str], params: EvidenceSearchParams | None = None) -> list[SearchEngineResponse]:
         """Answer from the expanded, token-bounded context using the local answer prompt."""
         return await super().batch_query(queries, params or EvidenceSearchParams())
@@ -166,5 +181,7 @@ class EvidenceSearchEngine(LocalSearchEngine):
     @override
     async def stream_query(self, query: str, params: EvidenceSearchParams | None = None) -> AsyncIterator[SearchEngineStreamEvent]:
         """Finish evidence planning/retrieval before streaming the final answer."""
+        if self.get_prompt('local_search').pydantic_model is not str:
+            raise ValueError('stream_query requires a plain-text answer prompt; use query for structured answers')
         async for event in super().stream_query(query, params or EvidenceSearchParams()):
             yield event

@@ -129,6 +129,7 @@ through `RaguGenerativeModule`.
 | `query_decomposition` | `QueryPlan` | `QueryPlanEngine` |
 | `query_rewrite` | `RewriteQuery` | `QueryPlanEngine` |
 | `evidence_followup` | `Plan` (`queries: list[str]`, at most 3) | `EvidenceSearchEngine`; JSON `payload` contains question and initial evidence |
+| `evidence_answer` | `EvidenceAnswer` (`evidence`, at most 5 title/fact pairs; `answer`) | Optional `EvidenceSearchEngine` answer preset; JSON `payload` contains question and bounded context |
 
 ```python
 from ragu.common.prompts import DEFAULT_PROMPT_TEMPLATES

@@ -489,3 +489,6 @@ paragraphs lead the final token-bounded context. This costs one planning call
 in addition to answer generation; disable planning with `followup_rounds=0`.
 See the [search-engine API](../../ragu/search_engine/README.md#evidencesearchengine)
 for the canonical example, parameters and diagnostics.
+An optional evidence-first answer preset extracts a short list of supporting
+facts before the answer in the same model call. It produces structured output;
+see the same API page for configuration and return fields.
