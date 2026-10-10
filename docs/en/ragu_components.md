@@ -129,6 +129,11 @@ During query processing, these summaries are transformed into textual context fo
 
 ### Local Search
 
+Local search can optionally include source chunks from one-hop neighboring
+entities, with separate candidate and output limits. This is disabled by default;
+see [one-hop chunk expansion](../../ragu/search_engine/README.md#optional-one-hop-chunk-expansion)
+for parameters, ranking, and limitations.
+
 Local search is best suited for **fine-grained, extractive queries**—the “needle-in-a-haystack” type of problem (e.g., “When did Alexander II die?”).
 
 Workflow:

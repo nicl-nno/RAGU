@@ -98,6 +98,7 @@ async def _find_most_related_text_unit_from_entities(
         knowledge_graph: KnowledgeGraph,
         edges_by_entity: Dict[str, List[Relation]],
         neighbor_chunks: Dict[str, List[str]],
+        neighbor_chunk_candidates: int = 0,
 ) -> list[Chunk]:
     """
     Return source chunks associated with seed entities.
@@ -109,6 +110,10 @@ async def _find_most_related_text_unit_from_entities(
     :param neighbor_chunks: Source chunk ids per neighbor id, from the same call.
         It covers the whole batch; entries for other queries are never consulted,
         since lookups go through the edges of these seeds only.
+    :param neighbor_chunk_candidates: Maximum additional unique one-hop chunks
+        to fetch. Zero preserves seed-only retrieval. Candidates are ordered by
+        seed rank, descending edge strength and edge ID, then taken round-robin
+        across neighbors so a prolific neighbor cannot consume the whole budget.
     """
     seed_entities = [entity for entity in entities if entity and entity.id]
     if not seed_entities:
@@ -144,6 +149,44 @@ async def _find_most_related_text_unit_from_entities(
                 "order": index,
                 "relation_counts": relation_counts,
             }
+
+    if neighbor_chunk_candidates:
+        seed_id_set = set(seed_ids)
+        seen_neighbors: set[str] = set()
+        neighbor_sources = []
+        for seed_id, edges in zip(seed_ids, grouped_relations):
+            for edge in sorted(
+                (e for e in edges if e is not None),
+                key=lambda e: (-e.relation_strength, e.id),
+            ):
+                if edge.subject_id == seed_id:
+                    neighbor_id = edge.object_id
+                elif edge.object_id == seed_id:
+                    neighbor_id = edge.subject_id
+                else:
+                    continue
+                if neighbor_id in seed_id_set or neighbor_id in seen_neighbors:
+                    continue
+                seen_neighbors.add(neighbor_id)
+                neighbor_sources.append(iter(neighbor_chunks.get(neighbor_id, [])))
+
+        added = 0
+        while neighbor_sources and added < neighbor_chunk_candidates:
+            remaining_sources = []
+            for source in neighbor_sources:
+                # Skip shared chunks without consuming the candidate budget.
+                c_id = next((c for c in source if c not in all_text_units_lookup), None)
+                if c_id is None:
+                    continue
+                all_text_units_lookup[c_id] = {
+                    "order": len(seed_entities) + added,
+                    "relation_counts": 0,
+                }
+                added += 1
+                remaining_sources.append(source)
+                if added == neighbor_chunk_candidates:
+                    break
+            neighbor_sources = remaining_sources
 
     chunk_ids = list(all_text_units_lookup.keys())
     chunk_payloads = await knowledge_graph.index.chunks_kv_storage.get_by_ids(chunk_ids)

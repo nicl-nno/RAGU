@@ -54,11 +54,25 @@ class LocalParams(EngineParams):
         context. (Generation-time; ignored by :meth:`batch_search`.)
     :param use_chunks: Whether source chunks are included in the generated
         context. (Generation-time; ignored by :meth:`batch_search`.)
+    :param neighbor_chunk_limit: Maximum additional chunks from one-hop neighbors
+        retained after chunk reranking. Zero disables expansion (the default).
+    :param neighbor_chunk_candidates: Maximum additional unique chunk IDs fetched
+        before reranking. Must be at least ``neighbor_chunk_limit`` when enabled.
     """
     top_k: int = 20
     rerank_top_k: int | None = None
     use_summary: bool = False
     use_chunks: bool = True
+    neighbor_chunk_limit: int = 0
+    neighbor_chunk_candidates: int = 50
+
+    def __post_init__(self) -> None:
+        for name in ("neighbor_chunk_limit", "neighbor_chunk_candidates"):
+            value = getattr(self, name)
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise ValueError(f"{name} must be a non-negative integer")
+        if self.neighbor_chunk_limit > self.neighbor_chunk_candidates:
+            raise ValueError("neighbor_chunk_candidates must be >= neighbor_chunk_limit")
 
 
 @dataclass(slots=True)
@@ -68,7 +82,8 @@ class LocalSearchResult:
 
     Entities are the seed retrieval results. Relations, summaries, and chunks
     are derived from those entities and optionally reranked. ``documents_id``
-    contains unique source document IDs from the final entity set.
+    contains unique source document IDs from the final entity set, plus retained
+    chunk documents when one-hop expansion is enabled.
     """
     entities: list[Entity] = field(default_factory=list)
     relations: list[Relation] = field(default_factory=list)
@@ -85,6 +100,8 @@ class LocalSearchRetrieve(SearchEngineRetrieve[LocalSearchResult]):
     Metrics use ``metrics["entities"]`` with one entry per final entity
     containing ``id``, ``name``, zero-based ``rank``, and vector
     ``relevance_score``.
+    With expansion enabled, ``metrics["neighbor_chunks"]`` contains the IDs of
+    retained additional chunks, before generation-time filtering and truncation.
     """
     result: LocalSearchResult
 
@@ -219,7 +236,7 @@ class LocalSearchEngine(BaseEngine[LocalParams, LocalSearchRetrieve]):
         )
 
         return list(await asyncio.gather(*[
-            self._assemble(query, entities, entity_hits, ranked, edges_by_entity, neighbor_chunks)
+            self._assemble(query, entities, entity_hits, ranked, edges_by_entity, neighbor_chunks, params)
             for query, (entities, entity_hits), ranked
             in zip(queries, entity_results, ranked_entities)
         ]))
@@ -259,6 +276,7 @@ class LocalSearchEngine(BaseEngine[LocalParams, LocalSearchRetrieve]):
         ranked_entities: List[Entity],
         edges_by_entity: Dict[str, List[Relation]],
         neighbor_chunks: Dict[str, List[str]],
+        params: LocalParams,
     ) -> LocalSearchRetrieve:
         """
         Gather the local context connected to a query's anchor entities.
@@ -274,6 +292,7 @@ class LocalSearchEngine(BaseEngine[LocalParams, LocalSearchRetrieve]):
         :param ranked_entities: The anchor entities selected for this query.
         :param edges_by_entity: Incident edges available for these entities.
         :param neighbor_chunks: Neighbor source chunks available for these entities.
+        :param params: Retrieval parameters controlling optional chunk expansion.
         :return: A :class:`LocalSearchRetrieve` with the query's local context and metrics.
         """
         entity_scores_by_id = {
@@ -288,7 +307,10 @@ class LocalSearchEngine(BaseEngine[LocalParams, LocalSearchRetrieve]):
         relations, relevant_chunks, summaries, documents_id = await asyncio.gather(
             _find_most_related_edges_from_entities(entities, edges_by_entity),
             _find_most_related_text_unit_from_entities(
-                entities, self.knowledge_graph, edges_by_entity, neighbor_chunks
+                entities, self.knowledge_graph, edges_by_entity, neighbor_chunks,
+                neighbor_chunk_candidates=(
+                    params.neighbor_chunk_candidates if params.neighbor_chunk_limit else 0
+                ),
             ),
             _find_most_related_community_from_entities(entities, self.knowledge_graph),
             _find_documents_id(entities),
@@ -322,6 +344,19 @@ class LocalSearchEngine(BaseEngine[LocalParams, LocalSearchRetrieve]):
             ),
         )
 
+        selected_neighbor_ids: list[str] = []
+        if params.neighbor_chunk_limit:
+            seed_chunk_ids = {chunk_id for entity in entities for chunk_id in entity.source_chunk_id}
+            selected_chunks = []
+            for chunk in relevant_chunks:
+                if chunk.id not in seed_chunk_ids:
+                    if len(selected_neighbor_ids) >= params.neighbor_chunk_limit:
+                        continue
+                    selected_neighbor_ids.append(chunk.id)
+                selected_chunks.append(chunk)
+            relevant_chunks = selected_chunks
+            documents_id = sorted(set(documents_id) | {chunk.doc_id for chunk in relevant_chunks})
+
         return LocalSearchRetrieve(
             query=query,
             result=LocalSearchResult(
@@ -332,6 +367,7 @@ class LocalSearchEngine(BaseEngine[LocalParams, LocalSearchRetrieve]):
                 documents_id=documents_id,
             ),
             metrics={
+                **({"neighbor_chunks": selected_neighbor_ids} if params.neighbor_chunk_limit else {}),
                 "entities": [
                     {
                         "id": entity.id,

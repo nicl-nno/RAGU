@@ -133,6 +133,45 @@ engine = LocalSearchEngine(llm=llm, knowledge_graph=graph, embedder=embedder)
 print(engine.language)
 ```
 
+#### Optional one-hop chunk expansion
+
+Local search normally returns source chunks of the seed entities only. To also
+retrieve evidence from their immediate neighbors, enable bounded expansion:
+
+```python
+from ragu.search_engine.local_search import LocalParams
+
+params = LocalParams(neighbor_chunk_limit=10, neighbor_chunk_candidates=50)
+result = await engine.search("Where is the company founded by Ada headquartered?", params)
+print(result.metrics["neighbor_chunks"])
+```
+
+`engine` above is a `LocalSearchEngine`. The same parameters work with `query`,
+`batch_search`, `batch_query`, and `stream_query`.
+
+- `neighbor_chunk_limit=0` (default) preserves seed-only behavior. Positive values
+  cap the additional chunks retained **after** the existing chunk reranker.
+- `neighbor_chunk_candidates=50` caps additional unique chunk IDs fetched
+  **before** reranking; it must be at least the output limit. Missing stored
+  chunks consume candidate slots but are omitted from results.
+- Neighbors are selected via incoming or outgoing edges of this query's final
+  seed entities. Traversal stops after one edge; seed entities remain unchanged.
+- Candidate order follows seed rank, descending relation strength, then relation
+  ID. Chunks are taken round-robin across unique neighbors, skipping duplicates
+  and seed chunks. Without a reranker, seed chunks come first, followed by this
+  deterministic candidate order. With a reranker, both groups are ranked jointly;
+  the extra-chunk cap never removes a seed chunk.
+- `metrics["neighbor_chunks"]` lists retained additional chunk IDs when enabled.
+  `documents_id` also includes documents of retained chunks. These describe
+  retrieval, before generation flags and token truncation are applied.
+
+This uses the already prefetched neighbor metadata and one batched chunk read per
+query. The candidate cap bounds extra chunk reads/reranking, not the existing
+graph adjacency prefetch. No new model or index rebuild is required. Tune these
+limits on a held-out evaluation set: expansion may add noise, and the usual
+context token limit still applies. `use_chunks=False` excludes all chunks from
+answer generation even when expansion is enabled.
+
 ### GlobalSearchEngine
 
 Community-summary RAG.
