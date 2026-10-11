@@ -23,6 +23,7 @@ def make_engine(vectors, plan=None):
     {'followup_rounds': 1.0}, {'followup_rounds': True}, {'followup_rounds': 2},
     {'dense_top_k': 0}, {'planner_context_tokens': -1}, {'followup_top_k': False},
     {'rrf_k': float('nan')}, {'rrf_k': float('inf')}, {'rrf_k': 0},
+    {'review_unknown_answers': 1}, {'review_unknown_answers': 'true'},
 ])
 def test_rejects_unbounded_or_invalid_parameters(kwargs):
     with pytest.raises(ValueError):
@@ -31,6 +32,7 @@ def test_rejects_unbounded_or_invalid_parameters(kwargs):
 
 def test_opt_in_defaults_leave_local_search_unchanged():
     assert EvidenceSearchParams().neighbor_chunk_limit == 10
+    assert EvidenceSearchParams().review_unknown_answers is False
     assert LocalParams().neighbor_chunk_limit == 0
 
 
@@ -124,5 +126,72 @@ async def test_structured_stream_rejected_before_retrieval():
     engine.batch_search = AsyncMock()
     with pytest.raises(ValueError, match='plain-text'):
         async for _ in engine.stream_query('q'):
+            pass
+    engine.batch_search.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_review_only_abstentions_preserves_batch_alignment_and_bounded_sources():
+    import json
+    from ragu.common.prompts import DEFAULT_PROMPT_TEMPLATES
+
+    engine = make_engine({})
+    instruction = DEFAULT_PROMPT_TEMPLATES['evidence_answer']
+    review_instruction = DEFAULT_PROMPT_TEMPLATES['evidence_review']
+    engine.update_prompt('local_search', instruction)
+    first = [instruction.pydantic_model.model_validate({
+        'evidence': [{'title': 'A', 'fact': 'initial fact'}], 'answer': value,
+    }) for value in [' unknown ', 'supported answer', 'UNKNOWN']]
+    reviewed = [review_instruction.pydantic_model.model_validate({
+        'evidence': [{'title': 'A', 'fact': 'reviewed fact'}], 'answer': value,
+    }) for value in ['recovered', 'UNKNOWN']]
+    contexts = [EvidenceSearchRetrieve(q, LocalSearchResult(chunks=[
+        Chunk('A\n' + 'source fact ' * 200, 0, 'doc')])) for q in ['q1', 'q2', 'q3']]
+    engine.batch_search = AsyncMock(return_value=contexts)
+    engine.llm.batch_chat_completion = AsyncMock(side_effect=[first, reviewed])
+
+    results = await engine.batch_query(['q1', 'q2', 'q3'], EvidenceSearchParams(review_unknown_answers=True))
+    assert [r.response.answer for r in results] == ['recovered', 'supported answer', 'UNKNOWN']
+    assert results[1].response is first[1]
+    assert first[0].answer == ' unknown '
+    assert results[0].payload['answer_review']['initial']['answer'] == ' unknown '
+    assert results[1].payload['answer_review'] == {'applied': False}
+    engine.batch_search.assert_awaited_once()
+    calls = engine.llm.batch_chat_completion.call_args_list
+    assert len(calls) == 2
+    assert calls[1].kwargs['output_schema'] is review_instruction.pydantic_model
+    payloads = [json.loads(messages[0]['content'].split('\n', 1)[1]) for messages in calls[1].args[0]]
+    assert [p['question'] for p in payloads] == ['q1', 'q3']
+    for payload, original_messages in zip(payloads, [calls[0].args[0][0], calls[0].args[0][2]]):
+        original = json.loads(original_messages[0]['content'].split('\n', 1)[1])
+        assert payload['context'] == original['context']
+        assert len(engine.truncation.encoder.encode(payload['context'])) <= 80
+        assert payload['proposed_answer']['evidence'] == [{'title': 'A', 'fact': 'initial fact'}]
+
+
+@pytest.mark.asyncio
+async def test_review_skips_extra_inference_when_every_answer_is_substantive():
+    from ragu.common.prompts import DEFAULT_PROMPT_TEMPLATES
+
+    engine = make_engine({})
+    instruction = DEFAULT_PROMPT_TEMPLATES['evidence_answer']
+    engine.update_prompt('local_search', instruction)
+    answer = instruction.pydantic_model.model_validate({'evidence': [], 'answer': 'known'})
+    engine.batch_search = AsyncMock(return_value=[EvidenceSearchRetrieve('q', LocalSearchResult())])
+    engine.llm.batch_chat_completion = AsyncMock(return_value=[answer])
+    result = await engine.query('q', EvidenceSearchParams(review_unknown_answers=True))
+    assert result.response is answer
+    engine.llm.batch_chat_completion.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_review_rejects_plain_prompt_and_stream_before_retrieval():
+    engine = make_engine({})
+    engine.batch_search = AsyncMock()
+    params = EvidenceSearchParams(review_unknown_answers=True)
+    with pytest.raises(ValueError, match='structured'):
+        await engine.query('q', params)
+    with pytest.raises(ValueError, match='does not support answer review'):
+        async for _ in engine.stream_query('q', params):
             pass
     engine.batch_search.assert_not_awaited()

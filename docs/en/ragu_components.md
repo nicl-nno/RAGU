@@ -492,3 +492,25 @@ for the canonical example, parameters and diagnostics.
 An optional evidence-first answer preset extracts a short list of supporting
 facts before the answer in the same model call. It produces structured output;
 see the same API page for configuration and return fields.
+The optional `review_unknown_answers=True` mode rechecks structured `UNKNOWN`
+answers against the same sources with one additional model call. Other answers
+are preserved, and the response payload records the initial proposal and whether
+review ran. It supports query and batch query, but not streaming. See the same
+API page for the complete setup; a recovered answer still requires evaluation.
+`recovery_mode="direct"` instead plans a bounded search after UNKNOWN and reviews
+the augmented context. `recovery_mode="after_review"` first reviews the existing
+context and searches only when that review also abstains. Both use the original
+proposal for the search stage, preserve substantive answers, and expose the
+actual final context in the returned retrieval. Search uses the configured
+chunk index and embedder; detailed budgets and mutually exclusive settings are
+documented in the [search engine API](../../ragu/search_engine/README.md).
+The optional `second_recovery_policy="repeat"` permits one more bounded search
+and review if the cascade still abstains. This final pass uses its latest context
+and proposal, preserves earlier substantive answers, and records per-pass provenance.
+The alternative `second_recovery_policy="deeper"` considers twenty hits per query
+in that final pass instead of five, with the same final context budget.
+
+Optional `recovery_guard="chain"`, `"independent"` or `"intersection"` adds source-only acceptance checks after all answer recovery stages (`"off"` by default). Chain audits the proposal; independent reconstructs an answer without seeing it; intersection requires both. Only initially `UNKNOWN` answers are eligible. Rejection restores the original answer, evidence and retrieval; acceptance retains the exact recovered answer. Inspect proofs and reasons in `response.payload["answer_guard"]`. Checks use the configured answer LLM and can still make mistakes; they do not fix unsupported initial substantive answers. See the [search engine reference](../../ragu/search_engine/README.md#optional-acceptance-guard) for parameters and prompt customization.
+
+
+MuSiQue evaluation and implementation flow: [Grounded answer recovery](grounded_recovery.md).

@@ -16,6 +16,9 @@ from ragu.common.prompts.default_models import (
     RewriteQuery,
     _EVIDENCE_FOLLOWUP_SCHEMA,
     _EVIDENCE_ANSWER_SCHEMA,
+    _EVIDENCE_REVIEW_SCHEMA,
+    _EVIDENCE_RECOVERY_SCHEMA,
+    _EVIDENCE_GUARD_SCHEMA,
 )
 from ragu.common.prompts.default_templates import (
     DEFAULT_ARTIFACTS_EXTRACTOR_SYSTEM,
@@ -40,6 +43,11 @@ from ragu.common.prompts.default_templates import (
     DEFAULT_RAGU_LM_SYSTEM_PROMPT,
     DEFAULT_EVIDENCE_FOLLOWUP_PROMPT,
     DEFAULT_EVIDENCE_ANSWER_PROMPT,
+    DEFAULT_EVIDENCE_REVIEW_PROMPT,
+    DEFAULT_EVIDENCE_RECOVERY_PROMPT,
+    DEFAULT_EVIDENCE_GUARD_CHAIN_SYSTEM,
+    DEFAULT_EVIDENCE_GUARD_INDEPENDENT_SYSTEM,
+    DEFAULT_EVIDENCE_GUARD_USER,
 )
 from ragu.common.prompts.few_shot import (
     FewShotFormatter,
@@ -298,5 +306,27 @@ DEFAULT_PROMPT_TEMPLATES: dict[str, RAGUInstruction] = {
         messages=ChatMessages.from_messages([UserMessage(DEFAULT_EVIDENCE_ANSWER_PROMPT)]),
         pydantic_model=_EVIDENCE_ANSWER_SCHEMA,
         description="Extract up to five grounded facts before a short structured answer.",
+    ),
+    "evidence_review": RAGUInstruction(
+        messages=ChatMessages.from_messages([UserMessage(DEFAULT_EVIDENCE_REVIEW_PROMPT)]),
+        pydantic_model=_EVIDENCE_REVIEW_SCHEMA,
+        description="Recheck a proposed structured answer against the same source context.",
+    ),
+    "evidence_recovery": RAGUInstruction(
+        messages=ChatMessages.from_messages([UserMessage(DEFAULT_EVIDENCE_RECOVERY_PROMPT)]),
+        pydantic_model=_EVIDENCE_RECOVERY_SCHEMA,
+        description="Plan at most two missing-link searches after a structured abstention.",
+    ),
+    "evidence_guard_chain": RAGUInstruction(
+        messages=ChatMessages.from_messages([SystemMessage(DEFAULT_EVIDENCE_GUARD_CHAIN_SYSTEM),
+                                            UserMessage(DEFAULT_EVIDENCE_GUARD_USER)]),
+        pydantic_model=_EVIDENCE_GUARD_SCHEMA,
+        description="Verify the complete evidence chain before accepting a recovered answer.",
+    ),
+    "evidence_guard_independent": RAGUInstruction(
+        messages=ChatMessages.from_messages([SystemMessage(DEFAULT_EVIDENCE_GUARD_INDEPENDENT_SYSTEM),
+                                            UserMessage(DEFAULT_EVIDENCE_GUARD_USER)]),
+        pydantic_model=_EVIDENCE_GUARD_SCHEMA,
+        description="Independently reconstruct a recovered answer without seeing the proposal.",
     ),
 }

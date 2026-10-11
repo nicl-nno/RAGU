@@ -130,6 +130,8 @@ through `RaguGenerativeModule`.
 | `query_rewrite` | `RewriteQuery` | `QueryPlanEngine` |
 | `evidence_followup` | `Plan` (`queries: list[str]`, at most 3) | `EvidenceSearchEngine`; JSON `payload` contains question and initial evidence |
 | `evidence_answer` | `EvidenceAnswer` (`evidence`, at most 5 title/fact pairs; `answer`) | Optional `EvidenceSearchEngine` answer preset; JSON `payload` contains question and bounded context |
+| `evidence_review` | `ReviewedAnswer` (`evidence`, at most 5 title/fact pairs; `answer`) | Optional UNKNOWN recovery; JSON `payload` contains question, bounded context and proposed answer/evidence |
+| `evidence_recovery` | `RecoveryPlan` (`queries: list[str]`, at most 2) | Optional search after UNKNOWN; JSON `payload` contains question, original context and initial answer/evidence |
 
 ```python
 from ragu.common.prompts import DEFAULT_PROMPT_TEMPLATES
@@ -315,3 +317,5 @@ External:
   single module instance.
 - The `pydantic_model` bound to an instruction must match the schema expected
   by the consuming module; changing it can break structured-output decoding.
+
+Recovery acceptance uses two registered prompts: `evidence_guard_chain` (candidate-aware proof audit) and `evidence_guard_independent` (answer-blind reconstruction). Both use the internal `Proof` schema: constraints, steps with exact quotes and constraint indices, missing links, ambiguity/external-knowledge flags, completeness, answer and rationale. Their user template receives a JSON `payload`; the independent payload has no proposal. Customize on the engine with `update_prompt`, retaining the registered schema.

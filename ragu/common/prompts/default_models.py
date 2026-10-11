@@ -51,6 +51,11 @@ _EVIDENCE_FACT_SCHEMA = create_model('Fact', title=(str, ...), fact=(str, ...))
 _EVIDENCE_ANSWER_SCHEMA = create_model(
     'EvidenceAnswer', evidence=(list[_EVIDENCE_FACT_SCHEMA], Field(max_length=5)), answer=(str, ...),
 )
+_EVIDENCE_REVIEW_FACT_SCHEMA = create_model('SupportingFact', title=(str, ...), fact=(str, ...))
+_EVIDENCE_REVIEW_SCHEMA = create_model(
+    'ReviewedAnswer', evidence=(list[_EVIDENCE_REVIEW_FACT_SCHEMA], Field(max_length=5)), answer=(str, ...),
+)
+_EVIDENCE_RECOVERY_SCHEMA = create_model('RecoveryPlan', queries=(list[str], Field(max_length=2)))
 
 
 class EntityModel(BaseModel):
@@ -189,3 +194,6 @@ class QueryPlan(BaseModel):
 
 class RewriteQuery(BaseModel):
     query: str = Field(..., description="Rewritten query that is self-contained and explicit")
+
+# Frozen source-only proof schema used by the optional recovery acceptance guard.
+from ragu.common.prompts._grounding_guard import Proof as _EVIDENCE_GUARD_SCHEMA

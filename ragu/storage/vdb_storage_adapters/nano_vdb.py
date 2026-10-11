@@ -21,6 +21,7 @@ from ragu.common.global_parameters import Settings
 from ragu.common.logger import logger
 from ragu.storage.base_storage import BaseVectorStorage
 from ragu.storage.types import EmbeddingHit, Point
+from ragu.utils.atomic_replace import _replace_with_retry
 
 _FLOAT = np.float32
 
@@ -257,7 +258,7 @@ class DenseVectorDB:
                 json.dump(storage, file, ensure_ascii=False)
                 file.flush()
                 os.fsync(file.fileno())
-            os.replace(handle.name, self.storage_file)
+            _replace_with_retry(handle.name, self.storage_file)
         except BaseException:
             if os.path.exists(handle.name):
                 os.unlink(handle.name)

@@ -75,6 +75,78 @@ use a plain-text answer prompt with `stream_query()`. Custom answer prompts may
 use `query`, `context`, `language` and a JSON `payload` containing question and
 bounded context. Generated facts are model outputs, not independent validation.
 
+To recheck only abstentions, keep the structured preset above and opt in per query:
+
+```python
+result = await engine.query(
+    "Your multi-hop question", EvidenceSearchParams(review_unknown_answers=True),
+)
+print(result.response.answer)
+print(result.payload["answer_review"])
+```
+
+This adds one model call only when the first answer is `UNKNOWN` (ignoring case
+and surrounding whitespace). The review sees the same bounded source context
+and the first answer's evidence; substantive first answers are preserved.
+`payload["answer_review"]` records whether review ran and, when it did, the
+initial answer and evidence. Both answer prompts must expose structured
+`answer` and `evidence` fields. Customize `evidence_review` per instance with
+`update_prompt`; review is supported by `query()` and `batch_query()`, not
+`stream_query()`. The default is `review_unknown_answers=False`. Recovery can
+still produce unsupported answers; review is not independent verification.
+
+To search for missing evidence after an abstention, use one of these mutually
+exclusive configurations with the structured evidence answer preset:
+
+| Configuration | Additional work after UNKNOWN |
+|---|---|
+| `EvidenceSearchParams(review_unknown_answers=True)` | One review of the original context |
+| `EvidenceSearchParams(recovery_mode="direct")` | One search planner, then one review |
+| `EvidenceSearchParams(recovery_mode="after_review")` | Review first; if still UNKNOWN, one search planner and one final review |
+
+`recovery_mode` defaults to `"off"`; combining a non-off mode with
+`review_unknown_answers=True` raises `ValueError`. Both search modes preserve
+substantive initial answers. The cascade also preserves substantive review
+answers. Its planner and final review receive the **original** proposal, even
+after an unsuccessful first review.
+
+The `evidence_recovery` planner proposes at most two queries. The existing
+embedder and chunk index return five hits per query (the default NanoVDB cosine
+threshold is 0.2). New whole paragraphs are interleaved by rank, excluding
+content already present, with a 2000-token prefix budget. This prefix precedes
+the original context; the combined text uses the engine's configured total
+limit. Search recovery requires a tiktoken tokenizer; the evaluated configuration
+uses `gpt-4o`/o200k and `max_context_length=8000`.
+
+After search recovery, `str(result.retrieval)` is the actual bounded final
+context via `EvidenceSearchRetrieve.rendered_context`. Its chunks include the
+original candidates and additions; candidates may extend beyond the rendered
+token boundary. The original retrieval is not modified.
+`retrieval.metrics` remains the initial search's metrics; its counts do not
+describe the added search or the final context. Use the recovery payload and
+`rendered_context` for final-context provenance and any subsequent evaluation.
+`result.payload["answer_recovery"]` records mode, applied status, initial proposal,
+queries, hit IDs, added IDs, and initial/final context when applied.
+Customize `evidence_recovery` and `evidence_review` with `update_prompt`.
+These modes support `query` and `batch_query`, and reject streaming.
+
+For one further bounded attempt after the cascade still returns UNKNOWN, use
+`EvidenceSearchParams(recovery_mode="after_review", second_recovery_policy="repeat")`.
+The default second policy is `"off"`; `"repeat"` requires `"after_review"`.
+The first recovery uses the original proposal, as above. Only the second recovery
+uses the latest UNKNOWN answer/evidence and the latest bounded context. It repeats
+the same planner, top-five retrieval and 2000-token addition budget once, for at
+most two further model calls. Substantive answers stop the cascade immediately.
+The final retrieval renders the last context. Recovery payload `rounds` records
+each pass's proposal, queries, hit/addition IDs and before/after contexts; top-level
+`initial` and `initial_context` retain the initial recovery inputs, while the
+top-level query and hit fields describe the last pass.
+`second_recovery_policy="deeper"` uses twenty hits per query **only in the second
+recovery pass**. The first pass still uses five. Its planner, paragraph ordering,
+2000-token prefix budget and total context limit are identical to `"repeat"`;
+this mode expands the candidate pool, not the final context budget. Each recovery
+payload round records its `top_k`.
+
 ### BaseEngine
 
 Abstract base for query engines.
@@ -500,3 +572,9 @@ External:
 - `NaiveSearchEngine` works with `build_only_vector_context=True`.
 - `MixSearchEngine` requires at least one child engine.
 - `search()` is useful for debugging retrieval before involving the LLM.
+
+#### Optional acceptance guard
+
+`EvidenceSearchParams(recovery_mode="after_review", second_recovery_policy="deeper", recovery_guard="chain")` verifies a recovered answer before returning it. `recovery_guard` defaults to `"off"`; alternatives are `"independent"` (answer-blind reconstruction) and `"intersection"` (both checks, two calls). It also works with `review_unknown_answers=True`. Only an initial literal `UNKNOWN` followed by a substantive answer triggers verification. Acceptance preserves the exact candidate; rejection restores the original answer, evidence and retrieval. Existing substantive answers are never checked by this option.
+
+Each check requires a complete chain, verbatim context quotes and conservative answer agreement. This is a fallible LLM check, not a guarantee of correctness. Transport errors propagate. `response.payload["answer_guard"]` records initial/candidate answers, candidate context, proofs, rejection reasons and exact messages; it may contain source text. Defaults use the same LLM as answer generation. Customize registered `evidence_guard_chain` and `evidence_guard_independent` prompts with `update_prompt`, preserving the registered Proof schema. No gold labels enter these calls.
