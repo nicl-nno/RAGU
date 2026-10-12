@@ -516,4 +516,4 @@ Optional `recovery_guard="chain"`, `"independent"` or `"intersection"` adds sour
 MuSiQue evaluation and implementation flow: [Grounded answer recovery](grounded_recovery.md).
 
 
-[Experimental recovery acceptance with a fallback](monotone_recovery.md)
+[Recovery acceptance with a fallback](monotone_recovery.md)

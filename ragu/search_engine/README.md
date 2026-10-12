@@ -580,4 +580,4 @@ External:
 Each check requires a complete chain, verbatim context quotes and conservative answer agreement. This is a fallible LLM check, not a guarantee of correctness. Transport errors propagate. `response.payload["answer_guard"]` records initial/candidate answers, candidate context, proofs, rejection reasons and exact messages; it may contain source text. Defaults use the same LLM as answer generation. Customize registered `evidence_guard_chain` and `evidence_guard_independent` prompts with `update_prompt`, preserving the registered Proof schema. No gold labels enter these calls.
 
 
-The provisional `recovery_guard="monotone"` option preserves strict accepts and uses a source-span check plus an independent full-context challenge on strict rejections. See [configuration, audit and evaluation status](../../docs/en/monotone_recovery.md).
+The opt-in `recovery_guard="monotone"` option preserves strict accepts and uses a source-span check plus an independent full-context challenge on strict rejections. See [configuration, audit and evaluation status](../../docs/en/monotone_recovery.md).

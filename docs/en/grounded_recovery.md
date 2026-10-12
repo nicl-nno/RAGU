@@ -1,5 +1,7 @@
 # Grounded answer recovery
 
+Follow-up: [independently challenged fallback, new audit and implementation](monotone_recovery.md). The original results below are preserved.
+
 After an initial `UNKNOWN`, RAGU reviews the context and can perform up to two additional retrieval passes. The new strict acceptance guard checks the recovered answer against every question constraint, intermediate relation, verbatim source quotation and answer agreement. Rejection restores the initial `UNKNOWN`, evidence and context. Initial substantive answers bypass this guard.
 
 ![Recovered-answer acceptance flow, Russian labels](../assets/grounded_recovery.png)

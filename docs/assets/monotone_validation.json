@@ -1,0 +1,306 @@
+{
+  "source_artifacts": {
+    "monotone_confirmation_summary.json": {
+      "path": "D:\\agents\\raguopt\\benchmark\\grounding_monotone\\monotone_confirmation_summary.json",
+      "sha256": "090374e9a0f7e1e5327b0baacc53b35b69afe96c1d7813c51b10a847384e3d91"
+    },
+    "monotone_confirmation_description.json": {
+      "path": "D:\\agents\\raguopt\\benchmark\\grounding_monotone\\monotone_confirmation_description.json",
+      "sha256": "2f3c4bbb7c9f02c02f2f1ed5b5174e5cf1d6aa5a98a28ea99a5bb2a691fff07f"
+    },
+    "outcome_monotone.json": {
+      "path": "D:\\agents\\raguopt\\benchmark\\grounding_monotone\\outcome_monotone.json",
+      "sha256": "2659d60c35bd81efe1ce275fce05ccbf3dbb51b19e97587c0ac5027837190fcd"
+    },
+    "production_replay.json": {
+      "path": "D:\\agents\\raguopt\\benchmark\\grounding_monotone\\production_replay.json",
+      "sha256": "5c1091897855e1193cdcafab5c3a7d1242de21a47199b6bcd4e4e0d14f221045"
+    }
+  },
+  "gate": {
+    "passed": true,
+    "stage": "confirmation",
+    "variant": "monotone",
+    "checks": {
+      "precision": true,
+      "unsupported": true,
+      "grounded_over_strict": true,
+      "rouge_over_baseline": true
+    },
+    "summary_sha256": "090374e9a0f7e1e5327b0baacc53b35b69afe96c1d7813c51b10a847384e3d91",
+    "selection_sha256": "902f503dec1d815ebbd6b8ea90ecde3fb64cdb17e0be5f91df81cdea572ebfb3"
+  },
+  "production_replay": {
+    "status": "passed",
+    "production_commit": "abb58ba8c6e2d5f95238fcd00923d78763fcf754",
+    "new_llm_calls": 0,
+    "guard_calls_replayed": 1189,
+    "trajectories": 2417,
+    "splits": {
+      "discovery": {
+        "questions": 300,
+        "recovered": 75,
+        "accepted_recoveries": 12,
+        "calls": 163
+      },
+      "confirmation": {
+        "questions": 2117,
+        "recovered": 477,
+        "accepted_recoveries": 63,
+        "calls": 1026
+      }
+    },
+    "limitations": "Public batch_query and all guard calls run; initial answer/context and final recovery state are injected from frozen artifacts. Retrieval, planning and intermediate reviews are not rerun. No live inference provider or judge labels are loaded."
+  },
+  "tests": {
+    "passed": 678,
+    "skipped": 20,
+    "deselected": 23
+  },
+  "lexical": {
+    "n": 2117,
+    "variants": {
+      "baseline": {
+        "rouge_l": 0.40787271333811337,
+        "rouge_l_stem": 0.41082159641974975,
+        "answer_f1": 0.41882107300654026,
+        "answer_em": 0.3391591875295229,
+        "unknown": 0.3731695795937648
+      },
+      "unfiltered": {
+        "rouge_l": 0.5291597112189208,
+        "rouge_l_stem": 0.5334295004087954,
+        "answer_f1": 0.5427486050457244,
+        "answer_em": 0.42985356636750116,
+        "unknown": 0.1478507321681625
+      },
+      "strict": {
+        "rouge_l": 0.4169713929611198,
+        "rouge_l_stem": 0.41992027604275617,
+        "answer_f1": 0.4274647675264747,
+        "answer_em": 0.34577231931979213,
+        "unknown": 0.36041568256967405
+      },
+      "span": {
+        "rouge_l": 0.44469753527666134,
+        "rouge_l_stem": 0.44859115147119333,
+        "answer_f1": 0.4559682218795672,
+        "answer_em": 0.3689182805857345,
+        "unknown": 0.31837505904581953
+      },
+      "variant": {
+        "rouge_l": 0.4308588333955606,
+        "rouge_l_stem": 0.43380771647719696,
+        "answer_f1": 0.4413992060475925,
+        "answer_em": 0.35758148323098726,
+        "unknown": 0.34341048653755313
+      }
+    }
+  },
+  "lexical_delta_vs_strict": {
+    "rouge_l": {
+      "delta": 0.01388744043444079,
+      "ci95": [
+        0.009267381964594866,
+        0.018872236774929323
+      ]
+    },
+    "rouge_l_stem": {
+      "delta": 0.01388744043444079,
+      "ci95": [
+        0.009267381964594921,
+        0.018872236774929215
+      ]
+    },
+    "answer_f1": {
+      "delta": 0.013934438521117753,
+      "ci95": [
+        0.009291590750612958,
+        0.0189158531464861
+      ]
+    },
+    "answer_em": {
+      "delta": 0.01180916391119513,
+      "ci95": [
+        0.007557864903164846,
+        0.01653282947567314
+      ]
+    },
+    "unknown": {
+      "delta": -0.017005196032120917,
+      "ci95": [
+        -0.022673594709494593,
+        -0.011809163911195075
+      ]
+    }
+  },
+  "audit_absolute_outcomes": {
+    "baseline": {
+      "n": 400,
+      "correct_supported": 138,
+      "correct_unsupported": 36,
+      "incorrect_supported": 25,
+      "incorrect_unsupported": 47,
+      "abstained": 154,
+      "answered": 246,
+      "correct": 174,
+      "grounded_correct": 138,
+      "wrong": 72,
+      "unsupported": 83,
+      "precision": 0.7073170731707317,
+      "unsupported_fraction": 0.33739837398373984
+    },
+    "unfiltered": {
+      "n": 400,
+      "correct_supported": 161,
+      "correct_unsupported": 67,
+      "incorrect_supported": 32,
+      "incorrect_unsupported": 78,
+      "abstained": 62,
+      "answered": 338,
+      "correct": 228,
+      "grounded_correct": 161,
+      "wrong": 110,
+      "unsupported": 145,
+      "precision": 0.6745562130177515,
+      "unsupported_fraction": 0.4289940828402367
+    },
+    "strict": {
+      "n": 400,
+      "correct_supported": 140,
+      "correct_unsupported": 36,
+      "incorrect_supported": 25,
+      "incorrect_unsupported": 47,
+      "abstained": 152,
+      "answered": 248,
+      "correct": 176,
+      "grounded_correct": 140,
+      "wrong": 72,
+      "unsupported": 83,
+      "precision": 0.7096774193548387,
+      "unsupported_fraction": 0.3346774193548387
+    },
+    "variant": {
+      "n": 400,
+      "correct_supported": 146,
+      "correct_unsupported": 38,
+      "incorrect_supported": 25,
+      "incorrect_unsupported": 47,
+      "abstained": 144,
+      "answered": 256,
+      "correct": 184,
+      "grounded_correct": 146,
+      "wrong": 72,
+      "unsupported": 85,
+      "precision": 0.71875,
+      "unsupported_fraction": 0.33203125
+    }
+  },
+  "audit_recovery_confusion": {
+    "strict": {
+      "accepted": {
+        "n": 2,
+        "correct_supported": 2,
+        "correct_unsupported": 0,
+        "incorrect_supported": 0,
+        "incorrect_unsupported": 0,
+        "abstained": 0,
+        "answered": 2,
+        "correct": 2,
+        "grounded_correct": 2,
+        "wrong": 0,
+        "unsupported": 0,
+        "precision": 1.0,
+        "unsupported_fraction": 0.0
+      },
+      "rejected": {
+        "n": 90,
+        "correct_supported": 21,
+        "correct_unsupported": 31,
+        "incorrect_supported": 7,
+        "incorrect_unsupported": 31,
+        "abstained": 0,
+        "answered": 90,
+        "correct": 52,
+        "grounded_correct": 21,
+        "wrong": 38,
+        "unsupported": 62,
+        "precision": 0.5777777777777777,
+        "unsupported_fraction": 0.6888888888888889
+      }
+    },
+    "variant": {
+      "accepted": {
+        "n": 10,
+        "correct_supported": 8,
+        "correct_unsupported": 2,
+        "incorrect_supported": 0,
+        "incorrect_unsupported": 0,
+        "abstained": 0,
+        "answered": 10,
+        "correct": 10,
+        "grounded_correct": 8,
+        "wrong": 0,
+        "unsupported": 2,
+        "precision": 1.0,
+        "unsupported_fraction": 0.2
+      },
+      "rejected": {
+        "n": 82,
+        "correct_supported": 15,
+        "correct_unsupported": 29,
+        "incorrect_supported": 7,
+        "incorrect_unsupported": 31,
+        "abstained": 0,
+        "answered": 82,
+        "correct": 44,
+        "grounded_correct": 15,
+        "wrong": 38,
+        "unsupported": 60,
+        "precision": 0.5365853658536586,
+        "unsupported_fraction": 0.7317073170731707
+      }
+    }
+  },
+  "audit_delta_vs_strict": {
+    "correct_all": {
+      "delta": 0.020000000000000018,
+      "ci95": [
+        0.007500000000000007,
+        0.034999999999999976
+      ]
+    },
+    "grounded_correct_all": {
+      "delta": 0.015000000000000013,
+      "ci95": [
+        0.0050000000000000044,
+        0.027500000000000024
+      ]
+    },
+    "answered_all": {
+      "delta": 0.020000000000000018,
+      "ci95": [
+        0.007499999999999951,
+        0.03500000000000003
+      ]
+    },
+    "correct_among_answers": {
+      "delta": 0.009072580645161255,
+      "ci95": [
+        0.003317279413854515,
+        0.016194414272077875
+      ]
+    },
+    "unsupported_among_answers": {
+      "delta": -0.00264616935483869,
+      "ci95": [
+        -0.012271121028119922,
+        0.0075758000979711726
+      ]
+    }
+  },
+  "retained_all": 63,
+  "recovered_all": 477,
+  "new_logical_calls": 99,
+  "logical_calls_all": 1026
+}
