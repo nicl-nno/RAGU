@@ -1,5 +1,7 @@
 # Recovery acceptance with an independent fallback check
 
+Follow-up experiment: [joint retrieval and context tuning across 18 recipes](factorial_screen.md). No new recipe passed selection; the implementation described here is retained.
+
 The new opt-in guard passed the frozen evaluation gate. It preserves every answer accepted by the existing strict guard. When strict verification rejects a recovered answer, a source-span check and a separate full-context challenge must both accept it. The challenge receives the question, unchanged context and answer, without previous proof or verdict.
 
 ![Strict acceptance preserved, challenged source-span fallback added](../assets/monotone_recovery.svg)
