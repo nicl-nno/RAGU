@@ -197,3 +197,8 @@ class RewriteQuery(BaseModel):
 
 # Frozen source-only proof schema used by the optional recovery acceptance guard.
 from ragu.common.prompts._grounding_guard import Proof as _EVIDENCE_GUARD_SCHEMA
+
+from ragu.common.prompts._monotone_guard import (
+    Proof as _MONOTONE_STRICT_SCHEMA, SpanProof as _MONOTONE_SPAN_SCHEMA,
+    ChallengeProof as _MONOTONE_CHALLENGE_SCHEMA,
+)

@@ -319,3 +319,12 @@ External:
   by the consuming module; changing it can break structured-output decoding.
 
 Recovery acceptance uses two registered prompts: `evidence_guard_chain` (candidate-aware proof audit) and `evidence_guard_independent` (answer-blind reconstruction). Both use the internal `Proof` schema: constraints, steps with exact quotes and constraint indices, missing links, ambiguity/external-knowledge flags, completeness, answer and rationale. Their user template receives a JSON `payload`; the independent payload has no proposal. Customize on the engine with `update_prompt`, retaining the registered schema.
+
+
+Experimental recovery fallback prompts (see [usage and audit](../../../docs/en/monotone_recovery.md)):
+
+| Prompt | Required schema | Purpose |
+|---|---|---|
+| `evidence_guard_monotone_strict` | `Proof` | Preserve strict acceptance before fallback |
+| `evidence_guard_monotone_span` | `SpanProof` | Check all needed evidence through source-span IDs |
+| `evidence_guard_monotone_challenge` | `ChallengeProof` | Independently check the answer against the full context |

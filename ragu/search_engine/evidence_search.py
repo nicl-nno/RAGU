@@ -13,6 +13,10 @@ from ragu.chunker.types import Chunk
 from ragu.common.prompts import ChatMessages, DEFAULT_PROMPT_TEMPLATES
 from ragu.common.prompts.messages import render
 from ragu.common.prompts._grounding_guard import verify as _verify_guard, Proof as _GuardProof
+from ragu.common.prompts._monotone_guard import (
+    verify as _verify_monotone, Proof as _MonotoneProof,
+    SpanProof as _MonotoneSpanProof, ChallengeProof as _MonotoneChallengeProof,
+)
 from ragu.graph.knowledge_graph import KnowledgeGraph
 from ragu.models.embedder import Embedder
 from ragu.models.llm import LLM
@@ -48,12 +52,12 @@ class EvidenceSearchParams(LocalParams):
     review_unknown_answers: bool = False
     recovery_mode: Literal['off', 'direct', 'after_review'] = 'off'
     second_recovery_policy: Literal['off', 'repeat', 'deeper'] = 'off'
-    recovery_guard: Literal['off', 'chain', 'independent', 'intersection'] = 'off'
+    recovery_guard: Literal['off', 'chain', 'independent', 'intersection', 'monotone'] = 'off'
 
     def __post_init__(self) -> None:
         super().__post_init__()
-        if self.recovery_guard not in ('off', 'chain', 'independent', 'intersection'):
-            raise ValueError('recovery_guard must be off, chain, independent, or intersection')
+        if self.recovery_guard not in ('off', 'chain', 'independent', 'intersection', 'monotone'):
+            raise ValueError('recovery_guard must be off, chain, independent, intersection, or monotone')
         if self.recovery_guard != 'off' and self.recovery_mode == 'off' and not self.review_unknown_answers:
             raise ValueError('Recovery guard requires recovery or answer review')
         if self.second_recovery_policy not in ('off', 'repeat', 'deeper'):
@@ -119,7 +123,9 @@ class EvidenceSearchEngine(LocalSearchEngine):
         self.update_prompt('evidence_followup', DEFAULT_PROMPT_TEMPLATES['evidence_followup'])
         self.update_prompt('evidence_review', DEFAULT_PROMPT_TEMPLATES['evidence_review'])
         self.update_prompt('evidence_recovery', DEFAULT_PROMPT_TEMPLATES['evidence_recovery'])
-        for name in ('evidence_guard_chain', 'evidence_guard_independent'):
+        for name in ('evidence_guard_chain', 'evidence_guard_independent',
+                     'evidence_guard_monotone_strict', 'evidence_guard_monotone_span',
+                     'evidence_guard_monotone_challenge'):
             self.update_prompt(name, DEFAULT_PROMPT_TEMPLATES[name])
         self._planner_truncations: dict[int, TokenTruncation] = {}
 
@@ -281,6 +287,9 @@ class EvidenceSearchEngine(LocalSearchEngine):
     async def _guard_recovered_answer(self, result: SearchEngineResponse, initial_response: BaseModel,
                                       initial_retrieval: LocalSearchRetrieve, mode: str) -> None:
         """Accept an unchanged recovered answer or restore the exact initial abstention."""
+        if mode == 'monotone':
+            await self._guard_monotone_answer(result, initial_response, initial_retrieval)
+            return
         engine = self
         class PromptAdapter:
             def __init__(self, stage):
@@ -309,6 +318,36 @@ class EvidenceSearchEngine(LocalSearchEngine):
         result.payload['answer_guard'] = {'mode': mode, 'applied': True, 'accepted': accepted,
             'initial': initial_response.model_dump(), 'candidate': result.response.model_dump(),
             'candidate_context': context, 'checks': checks}
+        if not accepted:
+            result.response = initial_response
+            result.retrieval = initial_retrieval
+
+    async def _guard_monotone_answer(self, result: SearchEngineResponse, initial_response: BaseModel,
+                                     initial_retrieval: LocalSearchRetrieve) -> None:
+        """Preserve strict accepts and check fallback answers without changing their text."""
+        engine = self
+        stages = {_MonotoneProof: 'strict', _MonotoneSpanProof: 'span',
+                  _MonotoneChallengeProof: 'challenge'}
+
+        class PromptAdapter:
+            async def chat_completion(self, messages, output_schema):
+                stage = stages[output_schema]
+                instruction = engine.get_prompt('evidence_guard_monotone_' + stage)
+                if instruction.pydantic_model is not output_schema:
+                    raise ValueError('Monotone guard requires the registered stage schema')
+                rendered = render(instruction.messages, payload=messages[1]['content'])[0].to_openai()
+                # All nested audit records share this call's message list. Keep their
+                # actual rendered prompts accurate when users customize a stage.
+                messages[:] = rendered
+                return await engine.llm.chat_completion(messages, output_schema=output_schema)
+
+        proposal = result.response.answer
+        context = self.truncation(str(result.retrieval))
+        decision = await _verify_monotone(result.query, context, proposal, PromptAdapter())
+        accepted = decision['accepted']
+        result.payload['answer_guard'] = {'mode': 'monotone', 'applied': True, 'accepted': accepted,
+            'initial': initial_response.model_dump(), 'candidate': result.response.model_dump(),
+            'candidate_context': context, 'checks': {'monotone': decision}}
         if not accepted:
             result.response = initial_response
             result.retrieval = initial_retrieval

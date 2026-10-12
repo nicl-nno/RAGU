@@ -348,3 +348,16 @@ DEFAULT_EVIDENCE_GUARD_INDEPENDENT_SYSTEM = _GUARD_COMMON + "\n" + (
     "Return the shortest unambiguous answer; if any necessary link is absent, return UNKNOWN."
 )
 DEFAULT_EVIDENCE_GUARD_USER = '{{ payload }}'
+
+
+from ragu.common.prompts._monotone_guard import (
+    _COMMON as _MONOTONE_COMMON, SYSTEM as _MONOTONE_SPAN_SYSTEM,
+    CHALLENGE_SYSTEM as _MONOTONE_CHALLENGE_SYSTEM,
+)
+DEFAULT_MONOTONE_STRICT_SYSTEM = _MONOTONE_COMMON + "\n" + (
+    "Audit the proposed answer. Search actively for missing links or a reason to reject it. "
+    "If fully proven, return the proposed answer unchanged; otherwise return UNKNOWN."
+)
+# Preserve the trailing newline through Jinja rendering for frozen-call parity.
+DEFAULT_MONOTONE_SPAN_SYSTEM = _MONOTONE_SPAN_SYSTEM + "{{ '' }}"
+DEFAULT_MONOTONE_CHALLENGE_SYSTEM = _MONOTONE_CHALLENGE_SYSTEM + "{{ '' }}"

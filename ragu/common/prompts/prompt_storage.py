@@ -19,8 +19,10 @@ from ragu.common.prompts.default_models import (
     _EVIDENCE_REVIEW_SCHEMA,
     _EVIDENCE_RECOVERY_SCHEMA,
     _EVIDENCE_GUARD_SCHEMA,
+    _MONOTONE_STRICT_SCHEMA, _MONOTONE_SPAN_SCHEMA, _MONOTONE_CHALLENGE_SCHEMA,
 )
 from ragu.common.prompts.default_templates import (
+    DEFAULT_MONOTONE_STRICT_SYSTEM, DEFAULT_MONOTONE_SPAN_SYSTEM, DEFAULT_MONOTONE_CHALLENGE_SYSTEM,
     DEFAULT_ARTIFACTS_EXTRACTOR_SYSTEM,
     DEFAULT_ARTIFACTS_EXTRACTOR_USER,
     DEFAULT_ARTIFACTS_VALIDATOR_SYSTEM,
@@ -329,4 +331,20 @@ DEFAULT_PROMPT_TEMPLATES: dict[str, RAGUInstruction] = {
         pydantic_model=_EVIDENCE_GUARD_SCHEMA,
         description="Independently reconstruct a recovered answer without seeing the proposal.",
     ),
+    "evidence_guard_monotone_strict": RAGUInstruction(
+        messages=ChatMessages.from_messages([SystemMessage(DEFAULT_MONOTONE_STRICT_SYSTEM), UserMessage(DEFAULT_EVIDENCE_GUARD_USER)]),
+        pydantic_model=_MONOTONE_STRICT_SCHEMA,
+        description="Preserve the strict evidence check before the optional challenged-span fallback.",
+    ),
+    "evidence_guard_monotone_span": RAGUInstruction(
+        messages=ChatMessages.from_messages([SystemMessage(DEFAULT_MONOTONE_SPAN_SYSTEM), UserMessage(DEFAULT_EVIDENCE_GUARD_USER)]),
+        pydantic_model=_MONOTONE_SPAN_SCHEMA,
+        description="Check complete answer support using original source-span IDs.",
+    ),
+    "evidence_guard_monotone_challenge": RAGUInstruction(
+        messages=ChatMessages.from_messages([SystemMessage(DEFAULT_MONOTONE_CHALLENGE_SYSTEM), UserMessage(DEFAULT_EVIDENCE_GUARD_USER)]),
+        pydantic_model=_MONOTONE_CHALLENGE_SCHEMA,
+        description="Independently challenge a span-supported answer against the full original context.",
+    ),
+
 }
