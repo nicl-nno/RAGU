@@ -1,5 +1,4 @@
 """Public answer pipeline routing and frozen guard prompt parity."""
-from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -31,11 +30,6 @@ def engine_for(initial, review):
     retrieval = EvidenceSearchRetrieve('Where was Alice born?', LocalSearchResult(), rendered_context='Alice was born in Paris.')
     engine.batch_search = AsyncMock(return_value=[retrieval])
     return engine, retrieval
-
-
-def test_frozen_plugin_is_byte_identical():
-    root = Path(__file__).resolve().parents[2]
-    assert (root / 'experiments/grounding_guard.py').read_bytes() == (root / 'ragu/common/prompts/_grounding_guard.py').read_bytes()
 
 
 @pytest.mark.parametrize('value', ['unknown', True, None])

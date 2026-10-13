@@ -1,6 +1,5 @@
 """Production monotone routing, frozen prompts and exact restoration."""
 from dataclasses import replace
-from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -44,11 +43,6 @@ def make_engine(outputs, initial_text='UNKNOWN'):
         result.retrieval = new
     engine._recover_answer = AsyncMock(side_effect=recover)
     return engine, initial, candidate, old, new
-
-
-def test_frozen_helper_byte_parity():
-    root = Path(__file__).resolve().parents[2]
-    assert (root/'experiments/monotone_guard.py').read_bytes() == (root/'ragu/common/prompts/_monotone_guard.py').read_bytes()
 
 
 @pytest.mark.parametrize('outputs,accepted', [

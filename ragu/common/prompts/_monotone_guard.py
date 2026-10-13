@@ -1,4 +1,4 @@
-"""Experimental source-only acceptance checks, independent of benchmark labels.
+"""Source-only acceptance checks with a challenged source-span fallback.
 
 The caller applies this only to recovered answers and keeps its original UNKNOWN
 on rejection. Quote validation establishes provenance, not semantic entailment;

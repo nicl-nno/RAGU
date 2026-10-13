@@ -580,4 +580,29 @@ External:
 Each check requires a complete chain, verbatim context quotes and conservative answer agreement. This is a fallible LLM check, not a guarantee of correctness. Transport errors propagate. `response.payload["answer_guard"]` records initial/candidate answers, candidate context, proofs, rejection reasons and exact messages; it may contain source text. Defaults use the same LLM as answer generation. Customize registered `evidence_guard_chain` and `evidence_guard_independent` prompts with `update_prompt`, preserving the registered Proof schema. No gold labels enter these calls.
 
 
-The opt-in `recovery_guard="monotone"` option preserves strict accepts and uses a source-span check plus an independent full-context challenge on strict rejections. See [configuration, audit and evaluation status](../../docs/en/monotone_recovery.md).
+The opt-in `recovery_guard="monotone"` option preserves strict accepts. After a strict
+rejection, both a source-span check and a separate full-context challenge must
+accept the unchanged candidate. The challenge receives the question, context and
+answer without the previous proof or verdict. All checks use the configured LLM;
+their errors are not statistically independent.
+
+```python
+from ragu import EvidenceSearchParams
+
+params = EvidenceSearchParams(
+    recovery_mode="after_review",
+    second_recovery_policy="deeper",
+    recovery_guard="monotone",
+)
+response = await engine.query(question, params)
+audit = response.payload.get("answer_guard")
+```
+
+As above, `engine` must use the structured `evidence_answer` prompt. Strict
+acceptance costs one guard call; the fallback adds up to two more. Rejection
+restores the original answer, evidence and retrieval. Audit data is under
+`answer_guard.checks.monotone`, including stage decisions and the actual messages.
+Customize `evidence_guard_monotone_strict`, `evidence_guard_monotone_span` and
+`evidence_guard_monotone_challenge` with `update_prompt`, preserving each registered
+schema. This guard only checks recovery from an initial literal `UNKNOWN` and
+does not validate initial substantive answers.

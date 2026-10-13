@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from experiments.grounding_guard import normalize_answer, verify
+from ragu.common.prompts._grounding_guard import normalize_answer, verify
 
 
 CONTEXT = "Ada was born in Elm. Elm is in Norland."

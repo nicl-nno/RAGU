@@ -321,7 +321,7 @@ External:
 Recovery acceptance uses two registered prompts: `evidence_guard_chain` (candidate-aware proof audit) and `evidence_guard_independent` (answer-blind reconstruction). Both use the internal `Proof` schema: constraints, steps with exact quotes and constraint indices, missing links, ambiguity/external-knowledge flags, completeness, answer and rationale. Their user template receives a JSON `payload`; the independent payload has no proposal. Customize on the engine with `update_prompt`, retaining the registered schema.
 
 
-Recovery fallback prompts (see [usage and audit](../../../docs/en/monotone_recovery.md)):
+Recovery fallback prompts (see [usage and audit](../../search_engine/README.md#optional-acceptance-guard)):
 
 | Prompt | Required schema | Purpose |
 |---|---|---|

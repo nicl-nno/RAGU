@@ -8,7 +8,6 @@ from typing_extensions import override
 
 from ragu.common.global_parameters import Settings
 from ragu.storage.base_storage import BaseKVStorage
-from ragu.utils.atomic_replace import _replace_with_retry
 
 
 T = TypeVar("T")
@@ -148,7 +147,7 @@ class JsonKVStorage(BaseKVStorage[dict[str, T]]):
                 json.dump(self.data, file, indent=2, ensure_ascii=False)
                 file.flush()
                 os.fsync(file.fileno())
-            _replace_with_retry(handle.name, self.filename)
+            os.replace(handle.name, self.filename)
         except BaseException:
             if os.path.exists(handle.name):
                 os.unlink(handle.name)

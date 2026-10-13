@@ -1,6 +1,3 @@
-# Preserve the frozen guard verifier bytes across Windows checkouts.
-/experiments/grounding_guard.py text eol=lf
+# Keep guard implementations consistent across platforms.
 /ragu/common/prompts/_grounding_guard.py text eol=lf
-
-/experiments/monotone_guard.py text eol=lf
 /ragu/common/prompts/_monotone_guard.py text eol=lf

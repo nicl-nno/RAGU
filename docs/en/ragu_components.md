@@ -513,7 +513,8 @@ in that final pass instead of five, with the same final context budget.
 Optional `recovery_guard="chain"`, `"independent"` or `"intersection"` adds source-only acceptance checks after all answer recovery stages (`"off"` by default). Chain audits the proposal; independent reconstructs an answer without seeing it; intersection requires both. Only initially `UNKNOWN` answers are eligible. Rejection restores the original answer, evidence and retrieval; acceptance retains the exact recovered answer. Inspect proofs and reasons in `response.payload["answer_guard"]`. Checks use the configured answer LLM and can still make mistakes; they do not fix unsupported initial substantive answers. See the [search engine reference](../../ragu/search_engine/README.md#optional-acceptance-guard) for parameters and prompt customization.
 
 
-MuSiQue evaluation and implementation flow: [Grounded answer recovery](grounded_recovery.md).
-
-
-[Recovery acceptance with a fallback](monotone_recovery.md)
+`recovery_guard="monotone"` preserves answers accepted by the strict check. Otherwise,
+both a source-span check and a separate full-context challenge must accept the
+candidate. The challenge does not see earlier proofs or verdicts. Rejection restores
+the original answer, evidence and context. See the
+[configuration and audit fields](../../ragu/search_engine/README.md#optional-acceptance-guard).
